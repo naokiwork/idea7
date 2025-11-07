@@ -7,8 +7,10 @@
     "dev:frontend": "next dev",
     "dev:backend": "nodemon server/index.ts",
     "build": "next build",
+    "build:server": "tsc --project server/tsconfig.json",
+    "build:all": "npm run build:server && npm run build",
     "start": "next start",
-    "start:backend": "node server/index.js",
+    "start:backend": "node server/dist/index.js",
     "lint": "next lint"
   },
   "dependencies": {
