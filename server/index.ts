@@ -21,7 +21,7 @@ const corsOptions = {
   origin: [
     "http://localhost:3000", // Development
     process.env.FRONTEND_URL, // Production (will be set after Vercel deployment)
-  ].filter(Boolean), // Remove undefined values
+  ].filter((url): url is string => Boolean(url)) as string[], // Remove undefined values and ensure string[] type
   credentials: true,
 };
 
