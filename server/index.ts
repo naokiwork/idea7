@@ -20,7 +20,9 @@ const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/study-
 console.log("Environment check:");
 console.log("PORT:", PORT);
 console.log("NODE_ENV:", process.env.NODE_ENV);
-console.log("MONGODB_URI:", MONGODB_URI ? "Set" : "Not set");
+console.log("MONGODB_URI exists:", !!process.env.MONGODB_URI);
+console.log("MONGODB_URI length:", process.env.MONGODB_URI?.length || 0);
+console.log("MONGODB_URI starts with mongodb:", MONGODB_URI?.startsWith("mongodb") || false);
 
 // CORS configuration
 const corsOptions = {
@@ -68,9 +70,15 @@ app.use((req: Request, res: Response) => {
 // Connect to MongoDB and start server
 async function startServer() {
   try {
-    if (!MONGODB_URI || MONGODB_URI.includes("localhost")) {
+    // Check if MONGODB_URI is properly configured
+    if (!MONGODB_URI || 
+        MONGODB_URI.trim() === "" || 
+        MONGODB_URI.includes("localhost") ||
+        !MONGODB_URI.startsWith("mongodb")) {
       console.error("❌ MONGODB_URI is not properly configured");
-      console.error("Please set MONGODB_URI environment variable");
+      console.error("Current value:", MONGODB_URI ? `"${MONGODB_URI.substring(0, 20)}..."` : "undefined");
+      console.error("Please set MONGODB_URI environment variable in Railway");
+      console.error("Expected format: mongodb+srv://username:password@cluster.mongodb.net/database");
       process.exit(1);
     }
 
