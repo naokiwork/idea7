@@ -13,8 +13,14 @@ import plansRouter from "./routes/plans";
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = parseInt(process.env.PORT || "5000", 10);
 const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/study-calendar";
+
+// Log environment variables (without sensitive data)
+console.log("Environment check:");
+console.log("PORT:", PORT);
+console.log("NODE_ENV:", process.env.NODE_ENV);
+console.log("MONGODB_URI:", MONGODB_URI ? "Set" : "Not set");
 
 // CORS configuration
 const corsOptions = {
@@ -62,15 +68,26 @@ app.use((req: Request, res: Response) => {
 // Connect to MongoDB and start server
 async function startServer() {
   try {
+    if (!MONGODB_URI || MONGODB_URI.includes("localhost")) {
+      console.error("❌ MONGODB_URI is not properly configured");
+      console.error("Please set MONGODB_URI environment variable");
+      process.exit(1);
+    }
+
+    console.log("🔄 Connecting to MongoDB...");
     await mongoose.connect(MONGODB_URI);
     console.log("✅ Connected to MongoDB");
 
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on http://localhost:${PORT}`);
-      console.log(`📊 API endpoints available at http://localhost:${PORT}/api`);
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`📊 API endpoints available at http://0.0.0.0:${PORT}/api`);
     });
   } catch (error) {
-    console.error("❌ Failed to connect to MongoDB:", error);
+    console.error("❌ Failed to start server:", error);
+    if (error instanceof Error) {
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
+    }
     process.exit(1);
   }
 }
