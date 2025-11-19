@@ -4,15 +4,39 @@
 
 import type { StudyRecord, PlanData } from "@/types";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+// Get API base URL from environment or use default
+const getAPIBaseURL = (): string => {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  // In production (Vercel), backend is not available, so return empty string
+  if (typeof window !== "undefined") {
+    const hostname = window.location.hostname;
+    if (hostname.includes("vercel.app") || hostname.includes("vercel.com")) {
+      return "";
+    }
+  }
+  // Default to localhost in development
+  return "http://localhost:5000/api";
+};
+
+const API_BASE_URL = getAPIBaseURL();
 
 /**
  * Generic fetch wrapper with error handling
+ * In production, silently fails and returns empty data (app uses localStorage)
  */
 async function fetchAPI<T>(
   endpoint: string,
   options?: RequestInit
 ): Promise<T> {
+  // In production (Vercel), don't try to fetch from backend (it's not available)
+  // The app uses localStorage, so API calls are optional
+  if (!API_BASE_URL || API_BASE_URL === "") {
+    // Silently skip API calls in production - app uses localStorage
+    return [] as unknown as T;
+  }
+
   const url = `${API_BASE_URL}${endpoint}`;
   
   try {
@@ -31,8 +55,14 @@ async function fetchAPI<T>(
 
     return await response.json();
   } catch (error: any) {
+    // If API_BASE_URL is empty, we're in production - don't throw errors
+    if (!API_BASE_URL || API_BASE_URL === "") {
+      console.warn(`API Error (${endpoint}) in production, using localStorage fallback:`, error);
+      return [] as unknown as T;
+    }
+    
     console.error(`API Error (${endpoint}):`, error);
-    // Provide more helpful error messages
+    // Provide more helpful error messages in development
     if (error.message?.includes("Failed to fetch") || error.message?.includes("NetworkError") || error.name === "TypeError") {
       throw new Error(`Failed to fetch\nMake sure the backend server is running on port 5000`);
     }
