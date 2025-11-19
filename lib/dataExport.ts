@@ -55,6 +55,13 @@ export function downloadFile(content: string, filename: string, mimeType: string
 }
 
 /**
+ * Download JSON data as file
+ */
+export function downloadJson(content: string, filename: string) {
+  downloadFile(content, filename, "application/json");
+}
+
+/**
  * Import data from JSON
  */
 export function importFromJSON(jsonString: string): {
