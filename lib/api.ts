@@ -30,8 +30,12 @@ async function fetchAPI<T>(
     }
 
     return await response.json();
-  } catch (error) {
+  } catch (error: any) {
     console.error(`API Error (${endpoint}):`, error);
+    // Provide more helpful error messages
+    if (error.message?.includes("Failed to fetch") || error.message?.includes("NetworkError") || error.name === "TypeError") {
+      throw new Error(`Failed to fetch\nMake sure the backend server is running on port 5000`);
+    }
     throw error;
   }
 }
