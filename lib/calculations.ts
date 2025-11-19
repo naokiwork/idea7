@@ -7,10 +7,26 @@ import { formatDate, parseDate, getWeekStart, getMonthStart, getYearStart, getDa
 
 /**
  * Calculate achievement rate percentage
+ * @param planned Planned study time in minutes
+ * @param actual Actual study time in minutes
+ * @returns Achievement rate as percentage (0-150+)
+ * 
+ * Rules:
+ * - If planned is 0: return 0% (no plan established)
+ * - Otherwise: return (actual / planned) * 100, rounded to nearest integer
  */
 export function calculateAchievementRate(planned: number, actual: number): number {
-  if (planned === 0) return actual > 0 ? 100 : 0;
-  return Math.round((actual / planned) * 100);
+  // Handle edge cases
+  if (planned === 0) {
+    // Planned time not set, treat achievement as 0%
+    return 0;
+  }
+  
+  // Calculate percentage and round to nearest integer
+  const rate = Math.round((actual / planned) * 100);
+  
+  // Ensure non-negative (shouldn't happen, but safety check)
+  return Math.max(0, rate);
 }
 
 /**

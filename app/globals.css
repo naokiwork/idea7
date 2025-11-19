@@ -5,11 +5,166 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --green-555nm: #7cff00;
+  --green-555nm-strong: #63d400;
+  --green-555nm-darker: #459800;
+  --green-555nm-light: #a9ff55;
+  --green-555nm-lighter: #d6ffad;
+  --green-555nm-pale: #ecffd6;
+  --green-555nm-text-dark: #264700;
+  --green-555nm-text-mid: #305600;
+  --green-555nm-text-soft: #437500;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+.achievement-ring {
+  position: relative;
+}
+
+.achievement-ring__sweep,
+.achievement-ring__flash {
+  position: absolute;
+  inset: -12px;
+  border-radius: 9999px;
+  pointer-events: none;
+}
+
+.achievement-ring__sweep {
+  background: conic-gradient(
+    from 0deg,
+    rgba(124, 255, 0, 0.12) 0deg,
+    rgba(124, 255, 0, 0.9) 120deg,
+    rgba(124, 255, 0, 0.35) 240deg,
+    rgba(124, 255, 0, 0.12) 360deg
+  );
+  mask: radial-gradient(farthest-side, transparent calc(100% - 14px), black calc(100% - 6px));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 14px), black calc(100% - 6px));
+  opacity: 1;
+  animation: achievement-ring-sweep 3s linear forwards;
+}
+
+@keyframes achievement-ring-sweep {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.achievement-ring__flash {
+  border: 6px solid rgba(124, 255, 0, 0.95);
+  box-shadow: 0 0 40px rgba(124, 255, 0, 0.8);
+  opacity: 0;
+  animation: achievement-ring-flash 0.3s ease-in-out forwards;
+}
+
+@keyframes achievement-ring-flash {
+  0% {
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* 555nm yellow-green overrides */
+.bg-green-600,
+.bg-green-500,
+.bg-green-400,
+.bg-emerald-600,
+.bg-emerald-500,
+.bg-emerald-400,
+.bg-emerald-700,
+.bg-emerald-800 {
+  background-color: var(--green-555nm) !important;
+}
+
+.hover\:bg-green-700:hover,
+.hover\:bg-green-400:hover,
+.hover\:bg-emerald-600:hover,
+.hover\:bg-emerald-500:hover,
+.hover\:bg-emerald-400:hover,
+.hover\:bg-emerald-300:hover {
+  background-color: var(--green-555nm-strong) !important;
+}
+
+.hover\:bg-emerald-500\/10:hover {
+  background-color: rgba(124, 255, 0, 0.1) !important;
+}
+
+.bg-emerald-300 {
+  background-color: var(--green-555nm-light) !important;
+}
+
+.bg-emerald-200 {
+  background-color: var(--green-555nm-lighter) !important;
+}
+
+.bg-emerald-100,
+.bg-emerald-50 {
+  background-color: var(--green-555nm-pale) !important;
+}
+
+.border-green-600,
+.border-emerald-800,
+.border-emerald-700,
+.border-emerald-600,
+.border-emerald-500,
+.border-emerald-400,
+.border-emerald-300,
+.border-emerald-200 {
+  border-color: var(--green-555nm-strong) !important;
+}
+
+.text-green-700,
+.text-green-600,
+.text-emerald-950,
+.text-emerald-900,
+.text-emerald-800,
+.text-emerald-700 {
+  color: var(--green-555nm-text-dark) !important;
+}
+
+.text-emerald-600,
+.text-emerald-500,
+.text-emerald-400 {
+  color: var(--green-555nm-text-mid) !important;
+}
+
+.text-emerald-300,
+.text-emerald-200 {
+  color: var(--green-555nm-light) !important;
+}
+
+.text-emerald-50,
+.text-emerald-100 {
+  color: var(--green-555nm-lighter) !important;
+}
+
+.focus\:ring-green-500:focus,
+.focus\:ring-green-300:focus,
+.focus\:ring-emerald-500:focus,
+.focus\:ring-emerald-400:focus,
+.focus\:ring-emerald-300:focus {
+  --tw-ring-color: rgba(124, 255, 0, 0.45) !important;
+}
+
+.focus\:ring-emerald-500:focus-visible,
+.focus\:ring-green-500:focus-visible {
+  --tw-ring-color: rgba(124, 255, 0, 0.55) !important;
+}
+
+.focus\:border-green-500:focus,
+.focus\:border-emerald-500:focus {
+  border-color: var(--green-555nm-strong) !important;
 }
 

@@ -49,6 +49,21 @@ export type AchievementColor =
   | "black"
   | "purple";
 
+export type ColorThemeOption = "classic" | "green-gradient" | "github-green";
+
+/**
+ * Represents a single recorded study session with a timestamp
+ */
+export interface StudySession {
+  id: string;
+  date: string; // YYYY-MM-DD
+  kind: "plan" | "actual";
+  minutes: number; // New minutes value after change
+  previousMinutes: number;
+  recordedAt: string; // ISO timestamp
+  source?: string;
+}
+
 /**
  * Calendar cell data for rendering
  */

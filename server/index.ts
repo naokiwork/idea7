@@ -14,7 +14,11 @@ dotenv.config();
 
 const app = express();
 const PORT = parseInt(process.env.PORT || "5000", 10);
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/study-calendar";
+// Use local MongoDB if MONGODB_URI is not set or if it's in development mode
+const MONGODB_URI = process.env.MONGODB_URI || 
+  (process.env.NODE_ENV === "development" 
+    ? "mongodb://localhost:27017/study-calendar" 
+    : "mongodb://localhost:27017/study-calendar");
 
 // Log environment variables (without sensitive data)
 console.log("Environment check:");
@@ -24,23 +28,20 @@ console.log("MONGODB_URI exists:", !!process.env.MONGODB_URI);
 console.log("MONGODB_URI length:", process.env.MONGODB_URI?.length || 0);
 console.log("MONGODB_URI starts with mongodb:", MONGODB_URI?.startsWith("mongodb") || false);
 
-// CORS configuration
-const corsOptions = {
-  origin: [
-    "http://localhost:3000", // Development
-    process.env.FRONTEND_URL, // Production (will be set after Vercel deployment)
-  ].filter((url): url is string => Boolean(url)) as string[], // Remove undefined values and ensure string[] type
+// CORS configuration - Allow all origins in development
+app.use(cors({
+  origin: true, // Allow all origins
   credentials: true,
-};
-
-// Middleware
-app.use(cors(corsOptions));
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Request logging middleware
 app.use((req: Request, res: Response, next: NextFunction) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  console.log(`Origin: ${req.headers.origin || 'none'}`);
   next();
 });
 
@@ -70,26 +71,36 @@ app.use((req: Request, res: Response) => {
 // Connect to MongoDB and start server
 async function startServer() {
   try {
-    // Check if MONGODB_URI is properly configured
-    if (!MONGODB_URI || 
-        MONGODB_URI.trim() === "" || 
-        MONGODB_URI.includes("localhost") ||
-        !MONGODB_URI.startsWith("mongodb")) {
-      console.error("❌ MONGODB_URI is not properly configured");
-      console.error("Current value:", MONGODB_URI ? `"${MONGODB_URI.substring(0, 20)}..."` : "undefined");
-      console.error("Please set MONGODB_URI environment variable in Railway");
-      console.error("Expected format: mongodb+srv://username:password@cluster.mongodb.net/database");
-      process.exit(1);
-    }
-
-    console.log("🔄 Connecting to MongoDB...");
-    await mongoose.connect(MONGODB_URI);
-    console.log("✅ Connected to MongoDB");
-
+    // Start server first, then connect to MongoDB
     app.listen(PORT, "0.0.0.0", () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📊 API endpoints available at http://0.0.0.0:${PORT}/api`);
     });
+
+    // Connect to MongoDB (optional - server will work without it)
+    if (MONGODB_URI && MONGODB_URI.trim() !== "") {
+      console.log("🔄 Connecting to MongoDB...");
+      console.log("MongoDB URI:", MONGODB_URI.includes("localhost") ? "Local MongoDB" : "MongoDB Atlas");
+      try {
+        await mongoose.connect(MONGODB_URI, {
+          serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
+        });
+        console.log("✅ Connected to MongoDB");
+      } catch (mongoError) {
+        console.warn("⚠️  Failed to connect to MongoDB:", mongoError instanceof Error ? mongoError.message : mongoError);
+        console.warn("Server is running but MongoDB features will not work");
+        if (MONGODB_URI.includes("localhost")) {
+          console.warn("💡 Tip: Make sure local MongoDB is running: brew services start mongodb-community");
+        } else {
+          console.warn("💡 Tip: Check your network connection and MongoDB Atlas settings");
+        }
+      }
+    } else {
+      console.warn("⚠️  MONGODB_URI is not set");
+      console.warn("Server will start but MongoDB features will not work");
+      console.warn("💡 To use local MongoDB, install it: brew install mongodb-community");
+      console.warn("💡 Then start it: brew services start mongodb-community");
+    }
   } catch (error) {
     console.error("❌ Failed to start server:", error);
     if (error instanceof Error) {

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import type { StudyRecord, PlanData, DateRange } from "@/types";
 import { formatDate, parseDate, fromMinutes } from "@/lib/utils";
+import { useLocale } from "@/context/LocaleContext";
 import {
   getDailyAchievement,
   getWeeklyStats,
@@ -28,19 +29,23 @@ export default function AchievementStats({
   const [showCustomPeriod, setShowCustomPeriod] = useState(false);
   const [customFrom, setCustomFrom] = useState(formatDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)));
   const [customTo, setCustomTo] = useState(formatDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)));
+  const { locale } = useLocale();
 
-  const daily = getDailyAchievement(records, plans, formatDate(currentDate));
-  const weekly = getWeeklyStats(records, plans, currentDate);
-  const monthly = getMonthlyStats(records, plans, currentDate);
-  const yearly = getYearlyStats(records, plans, currentDate);
+  const daily = useMemo(() => getDailyAchievement(records, plans, formatDate(currentDate)), [records, plans, currentDate]);
+  const weekly = useMemo(() => getWeeklyStats(records, plans, currentDate), [records, plans, currentDate]);
+  const monthly = useMemo(() => getMonthlyStats(records, plans, currentDate), [records, plans, currentDate]);
+  const yearly = useMemo(() => getYearlyStats(records, plans, currentDate), [records, plans, currentDate]);
 
-  const customPeriod: DateRange = { from: customFrom, to: customTo };
-  const custom = getCustomPeriodStats(records, plans, customPeriod);
+  const customPeriod: DateRange = useMemo(
+    () => ({ from: customFrom, to: customTo }),
+    [customFrom, customTo]
+  );
+  const custom = useMemo(() => getCustomPeriodStats(records, plans, customPeriod), [records, plans, customPeriod]);
 
-  const formatTime = (minutes: number) => {
+  const formatTime = useCallback((minutes: number) => {
     const { hours, minutes: mins } = fromMinutes(minutes);
     return `${hours}h ${mins}m`;
-  };
+  }, []);
 
   const StatCard = ({
     title,
@@ -53,20 +58,20 @@ export default function AchievementStats({
     actual: number;
     rate: number;
   }) => (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-      <h4 className="text-sm font-medium text-gray-600 mb-3">{title}</h4>
+    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+      <h4 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-3">{title}</h4>
       <div className="space-y-2">
         <div className="flex justify-between text-sm">
-          <span className="text-gray-600">Planned:</span>
-          <span className="text-gray-800 font-medium">{formatTime(planned)}</span>
+          <span className="text-gray-600 dark:text-gray-400">Planned:</span>
+          <span className="text-gray-800 dark:text-gray-200 font-medium">{formatTime(planned)}</span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-gray-600">Actual:</span>
-          <span className="text-gray-800 font-medium">{formatTime(actual)}</span>
+          <span className="text-gray-600 dark:text-gray-400">Actual:</span>
+          <span className="text-gray-800 dark:text-gray-200 font-medium">{formatTime(actual)}</span>
         </div>
-        <div className="pt-2 border-t border-gray-200">
+        <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
           <div className="flex justify-between items-center">
-            <span className="text-sm font-medium text-gray-700">Achievement:</span>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Achievement:</span>
             <span
               className={`text-lg font-semibold ${
                 rate >= 100 ? "text-green-600" : rate >= 80 ? "text-blue-600" : "text-gray-600"
@@ -82,7 +87,7 @@ export default function AchievementStats({
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6">
-      <h2 className="text-xl font-normal text-gray-800 mb-4">Achievement Statistics</h2>
+      <h2 className="text-xl font-normal text-gray-800 dark:text-gray-200 mb-4">Achievement Statistics</h2>
 
       {/* Standard Period Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -113,61 +118,61 @@ export default function AchievementStats({
       </div>
 
       {/* Custom Period */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h4 className="text-sm font-medium text-gray-700">Custom Period</h4>
-          <button
-            onClick={() => setShowCustomPeriod(!showCustomPeriod)}
-            className="text-sm text-blue-600 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1"
-            aria-expanded={showCustomPeriod}
-            aria-label="Toggle custom period input"
-          >
-            {showCustomPeriod ? "Hide" : "Show"}
-          </button>
-        </div>
+          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Custom Period</h4>
+            <button
+              onClick={() => setShowCustomPeriod(!showCustomPeriod)}
+              className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1"
+              aria-expanded={showCustomPeriod}
+              aria-label="Toggle custom period input"
+            >
+              {showCustomPeriod ? "Hide" : "Show"}
+            </button>
+          </div>
 
-        {showCustomPeriod && (
-          <div className="space-y-4">
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <label
-                  htmlFor="custom-from"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  From
-                </label>
-                <input
-                  type="date"
-                  id="custom-from"
-                  value={customFrom}
-                  onChange={(e) => setCustomFrom(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg 
-                             focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                             transition-shadow duration-200"
-                  aria-label="Custom period start date"
-                />
+          {showCustomPeriod && (
+            <div className="space-y-4">
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <label
+                    htmlFor="custom-from"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
+                    From
+                  </label>
+                  <input
+                    type="date"
+                    id="custom-from"
+                    value={customFrom}
+                    onChange={(e) => setCustomFrom(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-lg 
+                               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                               transition-shadow duration-200"
+                    aria-label="Custom period start date"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label
+                    htmlFor="custom-to"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
+                    To
+                  </label>
+                  <input
+                    type="date"
+                    id="custom-to"
+                    value={customTo}
+                    onChange={(e) => setCustomTo(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-lg 
+                               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                               transition-shadow duration-200"
+                    aria-label="Custom period end date"
+                  />
+                </div>
               </div>
-              <div className="flex-1">
-                <label
-                  htmlFor="custom-to"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  To
-                </label>
-                <input
-                  type="date"
-                  id="custom-to"
-                  value={customTo}
-                  onChange={(e) => setCustomTo(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg 
-                             focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                             transition-shadow duration-200"
-                  aria-label="Custom period end date"
-                />
-              </div>
-            </div>
             <StatCard
-              title={`Custom Period (${parseDate(customFrom).toLocaleDateString()} - ${parseDate(customTo).toLocaleDateString()})`}
+              title={`Custom Period (${parseDate(customFrom).toLocaleDateString(locale)} - ${parseDate(customTo).toLocaleDateString(locale)})`}
               planned={custom.planned}
               actual={custom.actual}
               rate={custom.achievementRate}

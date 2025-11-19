@@ -1,121 +1,76 @@
 # Study Hour Calendar
 
-A beautiful, minimalist web application for tracking and visualizing your study hours. Built with Next.js 14, TypeScript, TailwindCSS, Express.js, and MongoDB.
+A minimalist study-tracking dashboard built with **Next.js 14**, **TypeScript**, and **TailwindCSS**. The app runs entirely in the browser, persisting data with `localStorage`, and now includes timestamped backups, localization, chart controls, and bulk data entry tools.
 
 ## Features
 
-### 📅 Plan Function
+### ✅ Planning & Recording
 - Set planned study time per day (hours/minutes)
-- Automatic calculation of weekly, monthly, and yearly totals
+- Record study sessions via quick-select buttons or custom input
+- Bulk create past records with validation and automatic formatting
 
-### 📝 Record Function
-- Quick-select buttons (10min, 20min, 30min, 40min, 50min, 1 hour)
-- Manual input for custom durations
-- Accumulate multiple records per day
+### 📈 Achievement Insights
+- Daily/weekly/monthly/yearly statistics with memoized calculations
+- Custom date range analyzer
+- Dual-line charts (achievement % and planned vs actual) with toggleable series and CSV export
 
-### 📊 Achievement Percentage
-- Calculate achievement rate = (actual / planned) × 100%
-- Display daily, weekly, monthly, yearly achievement percentages
-- Custom period filter (from–to date range)
-
-### 🎨 Calendar Visualization
+### 🗓️ Calendar Visualization
 - Color-coded calendar cells based on achievement rates
-- Hover tooltips showing plan, record, and achievement percentage
+- Hover tooltips summarizing plan, actual, and achievement
+- Keyboard-accessible navigation and date selection
+
+### 🔄 Backup & Recovery
+- Manual and automatic snapshots stored with ISO timestamps
+- Relative time display, optional notes, and bulk deletion safeguards
+- One-click restore with undo banner (persisted across reloads)
+
+### 🌐 Localization & Accessibility
+- Language selector (English, 日本語) for dates and labels
+- ARIA-labelled controls, `aria-live` notifications, and responsive layouts
+- High-contrast themes with dark mode support
 
 ## Tech Stack
 
-### Frontend
+### Core
 - **Framework**: Next.js 14 (App Router)
 - **Language**: TypeScript
 - **Styling**: TailwindCSS
-- **State Management**: React hooks
-
-### Backend
-- **Framework**: Express.js
-- **Database**: MongoDB (with Mongoose)
-- **Language**: TypeScript
+- **State & Persistence**: React hooks + `localStorage`
+- **Charts**: Recharts
+- **Testing**: Vitest
 
 ## Prerequisites
 
 - Node.js 18+
-- MongoDB (local or Atlas)
-- npm or yarn
+- npm (or pnpm/yarn)
 
 ## Quick Start
 
-### 1. Install Dependencies
+1. **Install dependencies**
+   ```bash
+   npm install
+   ```
+2. **Start the development server**
+   ```bash
+   npm run dev:frontend
+   ```
+   The app will be available at http://localhost:3000.
+3. **Run the unit tests (optional)**
+   ```bash
+   npm test
+   ```
+4. **Build for production**
+   ```bash
+   npm run build
+   npm start
+   ```
 
-```bash
-npm install
-```
+## Data & Backups
 
-### 2. Set Up Environment Variables
-
-**Backend:**
-```bash
-cp .env.example .env
-```
-
-Edit `.env`:
-```env
-PORT=5000
-NODE_ENV=development
-MONGODB_URI=mongodb://localhost:27017/study-calendar
-```
-
-**Frontend:**
-```bash
-cp .env.local.example .env.local
-```
-
-Edit `.env.local`:
-```env
-NEXT_PUBLIC_API_URL=http://localhost:5000/api
-```
-
-### 3. Start MongoDB
-
-**Local MongoDB:**
-```bash
-# macOS (Homebrew)
-brew services start mongodb-community
-
-# Or run manually
-mongod
-```
-
-**Or use MongoDB Atlas** (cloud) - see [BACKEND_SETUP.md](./BACKEND_SETUP.md) for details.
-
-### 4. Run the Application
-
-**Development (Frontend + Backend):**
-```bash
-npm run dev
-```
-
-This starts:
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:5000
-
-**Or run separately:**
-```bash
-# Backend only
-npm run dev:backend
-
-# Frontend only
-npm run dev:frontend
-```
-
-### 5. Build for Production
-
-```bash
-# Build frontend
-npm run build
-
-# Start production servers
-npm start              # Frontend
-npm run start:backend # Backend
-```
+- All study data is stored in the browser under the keys `study-records`, `study-plans`, and `study-backups`.
+- Use the **Backup Manager** (Settings → Backups) to create manual snapshots, restore previous states, download archives, or delete entries.
+- Snapshots persist across reloads and include an undo banner that remains active for five minutes.
+- Import/export tools support JSON and CSV formats and automatically sanitize incoming data.
 
 ## Project Structure
 
@@ -125,113 +80,46 @@ idea-5/
 │   ├── layout.tsx
 │   ├── page.tsx
 │   └── globals.css
-├── components/             # React components
-│   ├── CalendarGrid.tsx
-│   ├── PlanInputForm.tsx
-│   ├── RecordModal.tsx
-│   └── AchievementStats.tsx
-├── server/                 # Express.js backend
-│   ├── index.ts            # Server entry point
-│   ├── models/             # MongoDB models
-│   │   ├── StudyRecord.ts
-│   │   └── PlanData.ts
-│   └── routes/             # API routes
-│       ├── records.ts
-│       └── plans.ts
-├── hooks/                  # React hooks
-│   ├── useLocalStorage.ts
-│   └── useStudyData.ts     # API data hook
-├── lib/                    # Utilities
-│   ├── api.ts              # API client
-│   ├── utils.ts
-│   ├── colorMapping.ts
-│   └── calculations.ts
-├── types/                  # TypeScript types
-│   └── index.ts
+├── components/             # React components (calendar, backup manager, modals, etc.)
+├── hooks/                  # Custom hooks (localStorage, backups manager, dark mode)
+├── lib/                    # Utilities (calculations, validation, exports, color mapping)
+├── tests/                  # Vitest unit tests
+├── context/                # Locale context
 └── package.json
 ```
 
-## API Endpoints
+## Testing & Quality
 
-### Health Check
-- `GET /api/health` - Check API status
+- **Unit tests**: `npm test`
+- **Linting**: `npm run lint`
+- **Build verification**: `npm run build`
 
-### Study Records
-- `GET /api/records` - Get all records (optional: `?from=YYYY-MM-DD&to=YYYY-MM-DD`)
-- `GET /api/records/:date` - Get record for specific date
-- `POST /api/records` - Create or add to existing record
-- `PUT /api/records/:date` - Update record
-- `DELETE /api/records/:date` - Delete record
+## Color Mapping Reference
 
-### Study Plans
-- `GET /api/plans` - Get all plans (optional: `?from=YYYY-MM-DD&to=YYYY-MM-DD`)
-- `GET /api/plans/:date` - Get plan for specific date
-- `POST /api/plans` - Create or update plan
-- `PUT /api/plans/:date` - Update plan
-- `DELETE /api/plans/:date` - Delete plan
-
-See [BACKEND_SETUP.md](./BACKEND_SETUP.md) for detailed API documentation.
-
-## Data Storage
-
-- **Development**: MongoDB (local or Atlas)
-- **Production**: MongoDB Atlas recommended
-- Data persists across sessions
-- Automatic data synchronization between frontend and backend
-
-## Features
-
-### Color Mapping
-Achievement rates are color-coded:
-- 0–49%: White
-- 50–59%: Yellow
-- 60–69%: Green
-- 70–79%: Brown
-- 80–89%: Blue
-- 90–99%: Black
-- 100%: Purple
-- 110–119%: Black
-- 120–129%: Purple
-- 130–139%: Green
-- 140–149%: White
-- 150%+: White
-
-### Accessibility
-- ARIA labels on all interactive elements
-- Keyboard navigation support
-- Semantic HTML
-- Screen reader friendly
-
-### Responsive Design
-- Mobile-first approach
-- Works on desktop, tablet, and mobile
-- Touch-friendly interface
+| Achievement % | Color |
+|---------------|-------|
+| 0–49%         | White |
+| 50–59%        | Yellow |
+| 60–69%        | Green |
+| 70–79%        | Brown |
+| 80–119%       | Black |
+| 120–129%      | Brown |
+| 130–139%      | Green |
+| 140%+         | White |
+| Exactly 100%  | Purple |
 
 ## Troubleshooting
 
-### Backend won't start
-1. Check if MongoDB is running
-2. Verify `MONGODB_URI` in `.env`
-3. Check if port 5000 is available
-
-### Frontend can't connect to API
-1. Ensure backend is running on port 5000
-2. Check `NEXT_PUBLIC_API_URL` in `.env.local`
-3. Check browser console for CORS errors
-
-### MongoDB connection issues
-See [BACKEND_SETUP.md](./BACKEND_SETUP.md) for detailed troubleshooting.
+- **Data looks incorrect**: Restore from a recent backup or clear `localStorage` keys (`study-*`).
+- **Undo banner disappeared**: Each restore remains undoable for five minutes; create a manual snapshot before experimenting.
+- **Charts look empty**: Confirm the date range and toggle switches in the chart toolbar.
 
 ## Future Enhancements
 
-- User authentication (JWT)
-- Multi-user support
-- Subject/category tracking
-- Consecutive days (strike) feature
-- AI-powered plan suggestions
-- Data export/import
-- Dark mode support
-- Charts and graphs
+- User authentication and multi-device sync
+- Subject/category tagging
+- Streak tracking and reminders
+- AI-powered study planning suggestions
 
 ## License
 
@@ -239,5 +127,4 @@ This project is open source and available for personal and educational use.
 
 ## Documentation
 
-- [Backend Setup Guide](./BACKEND_SETUP.md) - Detailed backend setup and API documentation
-- [Implementation Summary](./IMPLEMENTATION_SUMMARY.md) - Technical implementation details
+- [Implementation Summary](./IMPLEMENTATION_SUMMARY.md) - Technical implementation details and historical notes
