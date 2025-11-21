@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import type { StudyRecord, PlanData } from "@/types";
 import { recordsAPI, plansAPI } from "@/lib/api";
+import { logError } from "@/lib/logger";
 
 /**
  * Custom hook for managing study data from API
@@ -27,7 +28,7 @@ export function useStudyData() {
       setPlans(plansData);
     } catch (err: any) {
       setError(err.message || "Failed to load data");
-      console.error("Error loading data:", err);
+      logError("Error loading data:", err);
     } finally {
       setLoading(false);
     }

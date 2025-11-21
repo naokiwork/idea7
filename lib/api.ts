@@ -3,6 +3,7 @@
  */
 
 import type { StudyRecord, PlanData } from "@/types";
+import { logError, logWarn } from "./logger";
 
 // Get API base URL from environment or use default
 const getAPIBaseURL = (): string => {
@@ -57,11 +58,11 @@ async function fetchAPI<T>(
   } catch (error: any) {
     // If API_BASE_URL is empty, we're in production - don't throw errors
     if (!API_BASE_URL || API_BASE_URL === "") {
-      console.warn(`API Error (${endpoint}) in production, using localStorage fallback:`, error);
+      logWarn(`API Error (${endpoint}) in production, using localStorage fallback:`, error);
       return [] as unknown as T;
     }
     
-    console.error(`API Error (${endpoint}):`, error);
+    logError(`API Error (${endpoint}):`, error);
     // Provide more helpful error messages in development
     if (error.message?.includes("Failed to fetch") || error.message?.includes("NetworkError") || error.name === "TypeError") {
       throw new Error(`Failed to fetch\nMake sure the backend server is running on port 5000`);

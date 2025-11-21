@@ -6,6 +6,7 @@ import { generateId } from "@/lib/utils";
 import type { BackupSnapshot } from "@/lib/backups";
 import type { PlanData, StudyRecord, StudySession } from "@/types";
 import { sanitizePlanData, sanitizeStudyRecord } from "@/lib/validation";
+import { logError, logWarn } from "@/lib/logger";
 
 const RESTORE_CONTEXT_KEY = "study-restore-context";
 const RESTORE_NOTICE_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -90,7 +91,7 @@ export function useBackupsManager({
 
       setRestoreContext(parsed);
     } catch (error) {
-      console.error("Failed to load restore context", error);
+      logError("Failed to load restore context", error);
       window.localStorage.removeItem(RESTORE_CONTEXT_KEY);
     }
   }, []);
@@ -188,7 +189,7 @@ export function useBackupsManager({
     (backupId: string) => {
       const snapshot = backups.find((backup) => backup.id === backupId);
       if (!snapshot) {
-        console.warn(`Backup with id ${backupId} not found.`);
+        logWarn(`Backup with id ${backupId} not found.`);
         return;
       }
 

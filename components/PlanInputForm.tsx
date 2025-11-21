@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import type { PlanData } from "@/types";
 import { formatDate } from "@/lib/utils";
 import { useLocale } from "@/context/LocaleContext";
 import { sanitizePlanData, validatePlanData } from "@/lib/validation";
 import ErrorMessage from "./ErrorMessage";
+import { TIME_LIMITS } from "@/lib/constants";
 
 interface PlanInputFormProps {
   selectedDate: string;
@@ -30,9 +31,31 @@ export default function PlanInputForm({
   const [error, setError] = useState<string | null>(null);
   const { locale } = useLocale();
 
+  // Real-time validation
+  const validationError = useMemo(() => {
+    const parsedHours = parseInt(hours, 10);
+    const parsedMinutes = parseInt(minutes, 10);
+    
+    if (Number.isNaN(parsedHours) || parsedHours < 0 || parsedHours > TIME_LIMITS.MAX_HOURS) {
+      return `Hours must be between 0 and ${TIME_LIMITS.MAX_HOURS}`;
+    }
+    
+    if (Number.isNaN(parsedMinutes) || parsedMinutes < 0 || parsedMinutes > TIME_LIMITS.MAX_MINUTES) {
+      return `Minutes must be between 0 and ${TIME_LIMITS.MAX_MINUTES}`;
+    }
+    
+    return null;
+  }, [hours, minutes]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    
+    // Check real-time validation first
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
     
     const parsedHours = parseInt(hours, 10);
     const parsedMinutes = parseInt(minutes, 10);
@@ -80,9 +103,9 @@ export default function PlanInputForm({
       <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-4">Set Planned Study Time</h3>
       <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">{formattedDate}</p>
 
-      {error && (
+      {(error || validationError) && (
         <div className="mb-4">
-          <ErrorMessage message={error} onDismiss={() => setError(null)} />
+          <ErrorMessage message={error || validationError || ""} onDismiss={() => setError(null)} />
         </div>
       )}
 
@@ -99,14 +122,20 @@ export default function PlanInputForm({
               type="number"
               id="hours"
               min="0"
-              max="24"
+              max={TIME_LIMITS.MAX_HOURS}
               value={hours}
-              onChange={(e) => setHours(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-lg 
+              onChange={(e) => {
+                setHours(e.target.value);
+                setError(null);
+              }}
+              className={`w-full px-4 py-2 border rounded-lg 
                          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                         transition-shadow duration-200"
+                         transition-shadow duration-200
+                         ${validationError ? "border-red-300 dark:border-red-600" : "border-gray-300 dark:border-gray-600"}
+                         dark:bg-gray-700 dark:text-gray-200`}
               aria-label="Hours"
               aria-required="false"
+              aria-invalid={validationError ? "true" : "false"}
             />
           </div>
 
@@ -121,14 +150,20 @@ export default function PlanInputForm({
               type="number"
               id="minutes"
               min="0"
-              max="59"
+              max={TIME_LIMITS.MAX_MINUTES}
               value={minutes}
-              onChange={(e) => setMinutes(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-lg 
+              onChange={(e) => {
+                setMinutes(e.target.value);
+                setError(null);
+              }}
+              className={`w-full px-4 py-2 border rounded-lg 
                          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                         transition-shadow duration-200"
+                         transition-shadow duration-200
+                         ${validationError ? "border-red-300 dark:border-red-600" : "border-gray-300 dark:border-gray-600"}
+                         dark:bg-gray-700 dark:text-gray-200`}
               aria-label="Minutes"
               aria-required="false"
+              aria-invalid={validationError ? "true" : "false"}
             />
           </div>
         </div>

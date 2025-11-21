@@ -6,15 +6,10 @@ import { useLocale } from "@/context/LocaleContext";
 import { formatDate } from "@/lib/utils";
 import { sanitizeStudyRecord, validateStudyRecord } from "@/lib/validation";
 import ErrorMessage from "./ErrorMessage";
+import { TIMER_CONFIG, MODAL_SIZE, STORAGE_KEYS, TIME_LIMITS } from "@/lib/constants";
+import { logWarn } from "@/lib/logger";
 
-const TIMER_RADIUS = 90;
-const TIMER_CIRCUMFERENCE = 2 * Math.PI * TIMER_RADIUS;
-const MIN_WIDTH = 420;
-const MIN_HEIGHT = 560;
-const MAX_WIDTH = 900;
-const MAX_HEIGHT = 900;
-const DEFAULT_SIZE = { width: 520, height: 720 };
-const TIMER_STORAGE_KEY = "record-modal-timer-state";
+const DEFAULT_SIZE = { width: MODAL_SIZE.DEFAULT_WIDTH, height: MODAL_SIZE.DEFAULT_HEIGHT };
 
 type TimerStorageState = {
   isRunning: boolean;
@@ -33,7 +28,7 @@ const readStoredTimerState = (): TimerStorageState => {
     return DEFAULT_TIMER_STATE;
   }
   try {
-    const raw = window.localStorage.getItem(TIMER_STORAGE_KEY);
+    const raw = window.localStorage.getItem(STORAGE_KEYS.TIMER_STATE);
     if (!raw) {
       return DEFAULT_TIMER_STATE;
     }
@@ -49,7 +44,7 @@ const readStoredTimerState = (): TimerStorageState => {
     }
     return parsed;
   } catch (error) {
-    console.warn("Failed to read timer state", error);
+    logWarn("Failed to read timer state", error);
     return DEFAULT_TIMER_STATE;
   }
 };
@@ -90,6 +85,29 @@ export default function RecordModal({
   const [customMinutes, setCustomMinutes] = useState("0");
   const [useCustom, setUseCustom] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Real-time validation for custom input
+  const customInputError = useMemo(() => {
+    if (!useCustom) return null;
+    
+    const h = parseInt(customHours, 10);
+    const m = parseInt(customMinutes, 10);
+    
+    if (Number.isNaN(h) || h < 0 || h > TIME_LIMITS.MAX_HOURS) {
+      return `Hours must be between 0 and ${TIME_LIMITS.MAX_HOURS}`;
+    }
+    
+    if (Number.isNaN(m) || m < 0 || m > TIME_LIMITS.MAX_MINUTES) {
+      return `Minutes must be between 0 and ${TIME_LIMITS.MAX_MINUTES}`;
+    }
+    
+    const totalMinutes = h * 60 + m;
+    if (totalMinutes > TIME_LIMITS.MAX_MINUTES_PER_DAY) {
+      return `Total time cannot exceed ${TIME_LIMITS.MAX_HOURS} hours`;
+    }
+    
+    return null;
+  }, [useCustom, customHours, customMinutes]);
   const [timerState, setTimerState] = useState<TimerStorageState>(initialTimerState);
   const [displaySeconds, setDisplaySeconds] = useState(() =>
     Math.floor(computeDisplaySeconds(initialTimerState, Date.now()))
@@ -108,17 +126,17 @@ export default function RecordModal({
   const computeMaximizedSize = useCallback((): { width: number; height: number } => {
     if (typeof window === "undefined") {
       return {
-        width: MAX_WIDTH,
-        height: MAX_HEIGHT,
+        width: MODAL_SIZE.MAX_WIDTH,
+        height: MODAL_SIZE.MAX_HEIGHT,
       };
     }
     return {
-      width: Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, window.innerWidth - 120)),
-      height: Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, window.innerHeight - 120)),
+      width: Math.min(MODAL_SIZE.MAX_WIDTH, Math.max(MODAL_SIZE.MIN_WIDTH, window.innerWidth - 120)),
+      height: Math.min(MODAL_SIZE.MAX_HEIGHT, Math.max(MODAL_SIZE.MIN_HEIGHT, window.innerHeight - 120)),
     };
   }, []);
 
-  const quickSelectOptions = [10, 20, 30, 40, 50, 60]; // minutes
+  const quickSelectOptions = [10, 20, 30, 40, 50, 60] as const; // minutes
   const timerHours = Math.floor(displaySeconds / 3600);
   const timerMinutesPortion = Math.floor((displaySeconds % 3600) / 60);
   const timerSecondsPortion = Math.floor(displaySeconds % 60);
@@ -137,7 +155,7 @@ export default function RecordModal({
   const timerProgress = useMemo(() => {
     return (timerSecondsPortion % 60) / 60;
   }, [timerSecondsPortion]);
-  const dashOffset = TIMER_CIRCUMFERENCE * (1 - timerProgress);
+  const dashOffset = TIMER_CONFIG.CIRCUMFERENCE * (1 - timerProgress);
 
   const formatMinutesLabel = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
@@ -166,6 +184,12 @@ export default function RecordModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    // Check real-time validation first
+    if (customInputError) {
+      setError(customInputError);
+      return;
+    }
 
     let totalMinutes = 0;
 
@@ -232,7 +256,7 @@ export default function RecordModal({
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      window.localStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(timerState));
+      window.localStorage.setItem(STORAGE_KEYS.TIMER_STATE, JSON.stringify(timerState));
     }
   }, [timerState]);
 
@@ -271,8 +295,8 @@ export default function RecordModal({
     previousSizeRef.current = modalSize;
     setIsMaximized(false);
     setModalSize({
-      width: MIN_WIDTH,
-      height: MIN_HEIGHT,
+      width: MODAL_SIZE.MIN_WIDTH,
+      height: MODAL_SIZE.MIN_HEIGHT,
     });
   };
 
@@ -316,8 +340,8 @@ export default function RecordModal({
       const deltaY = event.clientY - resizeState.startY;
 
       setModalSize((prev) => {
-        const nextWidth = Math.min(Math.max(resizeState.startWidth + deltaX, MIN_WIDTH), MAX_WIDTH);
-        const nextHeight = Math.min(Math.max(resizeState.startHeight + deltaY, MIN_HEIGHT), MAX_HEIGHT);
+        const nextWidth = Math.min(Math.max(resizeState.startWidth + deltaX, MODAL_SIZE.MIN_WIDTH), MODAL_SIZE.MAX_WIDTH);
+        const nextHeight = Math.min(Math.max(resizeState.startHeight + deltaY, MODAL_SIZE.MIN_HEIGHT), MODAL_SIZE.MAX_HEIGHT);
         if (nextWidth === prev.width && nextHeight === prev.height) {
           return prev;
         }
@@ -414,9 +438,9 @@ export default function RecordModal({
         </h3>
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">{formattedDate}</p>
 
-        {error && (
+        {(error || customInputError) && (
           <div className="mb-4">
-            <ErrorMessage message={error} onDismiss={() => setError(null)} />
+            <ErrorMessage message={error || customInputError || ""} onDismiss={() => setError(null)} />
           </div>
         )}
 
@@ -439,7 +463,7 @@ export default function RecordModal({
                   <circle
                     cx="110"
                     cy="110"
-                    r={TIMER_RADIUS}
+                    r={TIMER_CONFIG.RADIUS}
                     stroke="#2d3748"
                     strokeWidth="12"
                     fill="transparent"
@@ -447,12 +471,12 @@ export default function RecordModal({
                   <circle
                     cx="110"
                     cy="110"
-                    r={TIMER_RADIUS}
+                    r={TIMER_CONFIG.RADIUS}
                     stroke="#f97316"
                     strokeWidth="12"
                     strokeLinecap="round"
                     fill="transparent"
-                    strokeDasharray={`${TIMER_CIRCUMFERENCE} ${TIMER_CIRCUMFERENCE}`}
+                    strokeDasharray={`${TIMER_CONFIG.CIRCUMFERENCE} ${TIMER_CONFIG.CIRCUMFERENCE}`}
                     strokeDashoffset={dashOffset}
                     transform="rotate(-90 110 110)"
                     style={{ transition: "stroke-dashoffset 0.4s ease" }}
@@ -565,13 +589,19 @@ export default function RecordModal({
                     type="number"
                     id="custom-hours"
                     min="0"
-                    max="24"
+                    max={TIME_LIMITS.MAX_HOURS}
                     value={customHours}
-                    onChange={(e) => setCustomHours(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-lg 
+                    onChange={(e) => {
+                      setCustomHours(e.target.value);
+                      setError(null);
+                    }}
+                    className={`w-full px-4 py-2 border rounded-lg 
                                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                               transition-shadow duration-200"
+                               transition-shadow duration-200
+                               ${customInputError ? "border-red-300 dark:border-red-600" : "border-gray-300 dark:border-gray-600"}
+                               dark:bg-gray-700 dark:text-gray-200`}
                     aria-label="Custom hours"
+                    aria-invalid={customInputError ? "true" : "false"}
                   />
                 </div>
 
@@ -586,13 +616,19 @@ export default function RecordModal({
                     type="number"
                     id="custom-minutes"
                     min="0"
-                    max="59"
+                    max={TIME_LIMITS.MAX_MINUTES}
                     value={customMinutes}
-                    onChange={(e) => setCustomMinutes(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-lg 
+                    onChange={(e) => {
+                      setCustomMinutes(e.target.value);
+                      setError(null);
+                    }}
+                    className={`w-full px-4 py-2 border rounded-lg 
                                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                               transition-shadow duration-200"
+                               transition-shadow duration-200
+                               ${customInputError ? "border-red-300 dark:border-red-600" : "border-gray-300 dark:border-gray-600"}
+                               dark:bg-gray-700 dark:text-gray-200`}
                     aria-label="Custom minutes"
+                    aria-invalid={customInputError ? "true" : "false"}
                   />
                 </div>
               </div>

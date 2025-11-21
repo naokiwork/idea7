@@ -1,4 +1,6 @@
 import type { StudyRecord, PlanData, StudySession } from "@/types";
+import { logError } from "./logger";
+import { generateId } from "./utils";
 
 export interface BackupSnapshot {
   id: string;
@@ -37,7 +39,7 @@ export function loadBackups(): BackupSnapshot[] {
     }
     return parsed;
   } catch (error) {
-    console.error("Failed to load backups:", error);
+    logError("Failed to load backups:", error);
     return [];
   }
 }
@@ -50,7 +52,7 @@ export function saveBackups(backups: BackupSnapshot[]): void {
   try {
     win.localStorage.setItem(STORAGE_KEY, JSON.stringify(backups));
   } catch (error) {
-    console.error("Failed to persist backups:", error);
+    logError("Failed to persist backups:", error);
   }
 }
 
@@ -112,11 +114,4 @@ export function deleteBackup(id: string): BackupSnapshot[] {
   return updated;
 }
 
-function generateId(): string {
-  const win = getWindow();
-  if (win?.crypto?.randomUUID) {
-    return win.crypto.randomUUID();
-  }
-  return `backup-${Math.random().toString(36).slice(2, 10)}-${Date.now()}`;
-}
 
