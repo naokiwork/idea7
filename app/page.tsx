@@ -21,10 +21,11 @@ import BackupManager from "@/components/BackupManager";
 import { LocaleProvider } from "@/context/LocaleContext";
 import { useBackupsManager } from "@/hooks/useBackupsManager";
 import SheetView from "@/components/SheetView";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import { STORAGE_KEYS, TIME_LIMITS } from "@/lib/constants";
+import { logError } from "@/lib/logger";
 
 type ViewMode = "calendar" | "today" | "sheet";
-
-const SAMPLE_DATA_KEY = "study-demo-data-loaded";
 
 const COLOR_THEME_OPTIONS: Array<{
   value: ColorThemeOption;
@@ -93,28 +94,29 @@ function generateSampleData(referenceDate: Date = new Date()): { plans: PlanData
  * Uses localStorage for data persistence (no backend required)
  */
 export default function Home() {
-  const [records, setRecords] = useLocalStorage<StudyRecord[]>("study-records", []);
-  const [plans, setPlans] = useLocalStorage<PlanData[]>("study-plans", []);
+  const [records, setRecords] = useLocalStorage<StudyRecord[]>(STORAGE_KEYS.RECORDS, []);
+  const [plans, setPlans] = useLocalStorage<PlanData[]>(STORAGE_KEYS.PLANS, []);
   const [error, setError] = useState<string | null>(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [showPlanForm, setShowPlanForm] = useState(false);
   const [showRecordModal, setShowRecordModal] = useState(false);
-  const [viewMode, setViewMode] = useLocalStorage<ViewMode>("app-view-mode", "calendar");
-  const [colorTheme, setColorTheme] = useLocalStorage<ColorThemeOption>("app-color-theme", "classic");
+  const [viewMode, setViewMode] = useLocalStorage<ViewMode>(STORAGE_KEYS.VIEW_MODE, "calendar");
+  const [colorTheme, setColorTheme] = useLocalStorage<ColorThemeOption>(STORAGE_KEYS.COLOR_THEME, "classic");
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showBulkRecordAdd, setShowBulkRecordAdd] = useState(false);
   const [dailyViewDate, setDailyViewDate] = useLocalStorage<string>(
-    "app-daily-view-date",
+    STORAGE_KEYS.DAILY_VIEW_DATE,
     formatDate(new Date())
   );
   const [locale, setLocale] = useLocalStorage<string>(
-    "app-locale",
+    STORAGE_KEYS.LOCALE,
     typeof navigator !== "undefined" ? navigator.language : "en-US"
   );
-  const [sessions, setSessions] = useLocalStorage<StudySession[]>("study-sessions", []);
+  const [sessions, setSessions] = useLocalStorage<StudySession[]>(STORAGE_KEYS.SESSIONS, []);
   const sessionsRef = useRef(sessions);
   useEffect(() => {
     sessionsRef.current = sessions;
@@ -154,13 +156,13 @@ export default function Home() {
       return;
     }
 
-    const hasInitialized = window.localStorage.getItem(SAMPLE_DATA_KEY) === "true";
+    const hasInitialized = window.localStorage.getItem(STORAGE_KEYS.SAMPLE_DATA_LOADED) === "true";
 
     if (!hasInitialized && records.length === 0 && plans.length === 0) {
       const { plans: samplePlans, records: sampleRecords } = generateSampleData(new Date());
       setPlans(samplePlans);
       setRecords(sampleRecords);
-      window.localStorage.setItem(SAMPLE_DATA_KEY, "true");
+      window.localStorage.setItem(STORAGE_KEYS.SAMPLE_DATA_LOADED, "true");
     }
   }, [plans.length, records.length, setPlans, setRecords]);
 
@@ -253,7 +255,7 @@ export default function Home() {
       setError(null);
     } catch (err) {
       setError("Failed to save plan. Please try again.");
-      console.error("Error saving plan:", err);
+      logError("Error saving plan:", err);
     }
   }, [appendLogEntry, plans, plansIndexMap, records, createBackupSnapshot, setPlans]);
 
@@ -278,7 +280,7 @@ export default function Home() {
       setError(null);
     } catch (err) {
       setError("Failed to delete plan. Please try again.");
-      console.error("Error deleting plan:", err);
+      logError("Error deleting plan:", err);
     }
   }, [appendLogEntry, plans, plansIndexMap, records, createBackupSnapshot, setPlans]);
 
@@ -343,7 +345,7 @@ export default function Home() {
       setError(null);
     } catch (err) {
       setError("Failed to edit record. Please try again.");
-      console.error("Error editing record:", err);
+      logError("Error editing record:", err);
     }
   }, [appendLogEntry, records, recordsIndexMap, plans, createBackupSnapshot, setRecords]);
 
@@ -362,7 +364,7 @@ export default function Home() {
       setError(null);
     } catch (err) {
       setError("Failed to delete record. Please try again.");
-      console.error("Error deleting record:", err);
+      logError("Error deleting record:", err);
     }
   }, [appendLogEntry, records, recordsIndexMap, plans, createBackupSnapshot, setRecords]);
 
@@ -457,14 +459,14 @@ export default function Home() {
         // Ensure total doesn't exceed 24 hours
         updated[existingIndex] = {
           ...updated[existingIndex],
-          minutes: Math.min(totalMinutes, 24 * 60),
+          minutes: Math.min(totalMinutes, TIME_LIMITS.MAX_MINUTES_PER_DAY),
         };
         setRecords(updated);
         const sessionsAfter = appendLogEntry(
           "actual",
           sanitized.date,
           previousMinutes,
-          Math.min(totalMinutes, 24 * 60),
+          Math.min(totalMinutes, TIME_LIMITS.MAX_MINUTES_PER_DAY),
           "Record saved"
         );
         createBackupSnapshot(updated, plans, sessionsAfter, "Record saved");
@@ -475,7 +477,7 @@ export default function Home() {
           "actual",
           sanitized.date,
           0,
-          Math.min(sanitized.minutes, 24 * 60),
+          Math.min(sanitized.minutes, TIME_LIMITS.MAX_MINUTES_PER_DAY),
           "Record saved"
         );
         createBackupSnapshot(updated, plans, sessionsAfter, "Record saved");
@@ -485,7 +487,7 @@ export default function Home() {
       setError(null);
     } catch (err) {
       setError("Failed to save record. Please try again.");
-      console.error("Error saving record:", err);
+      logError("Error saving record:", err);
     }
   }, [appendLogEntry, records, recordsIndexMap, plans, createBackupSnapshot, setRecords]);
 
@@ -579,7 +581,7 @@ export default function Home() {
       setError(null);
     } catch (err) {
       setError("Failed to save bulk plans. Please try again.");
-      console.error("Error saving bulk plans:", err);
+      logError("Error saving bulk plans:", err);
     }
   }, [appendLogEntry, plans, plansIndexMap, records, createBackupSnapshot, setPlans]);
 
@@ -595,18 +597,15 @@ export default function Home() {
       setError(null);
     } catch (err) {
       setError("Failed to import data. Please try again.");
-      console.error("Error importing data:", err);
+      logError("Error importing data:", err);
     }
   }, [createBackupSnapshot, setRecords, setSessions, setPlans]);
 
   const handleClearAllData = useCallback(() => {
-    if (typeof window !== "undefined") {
-      const confirmed = window.confirm("Clear all study data and backups?");
-      if (!confirmed) {
-        return;
-      }
-    }
+    setShowClearConfirm(true);
+  }, []);
 
+  const handleClearAllDataConfirm = useCallback(() => {
     setPlans([]);
     setRecords([]);
     setSessions([]);
@@ -615,11 +614,12 @@ export default function Home() {
     setShowRecordModal(false);
     setSelectedDate(null);
     setError(null);
+    setShowClearConfirm(false);
 
     if (typeof window !== "undefined") {
-      window.localStorage.setItem(SAMPLE_DATA_KEY, "true");
+      window.localStorage.setItem(STORAGE_KEYS.SAMPLE_DATA_LOADED, "true");
     }
-  }, [deleteAllBackups, setPlans, setRecords, setSessions, setShowPlanForm, setShowRecordModal]);
+  }, [deleteAllBackups, setPlans, setRecords, setSessions]);
 
   const handleLoadSampleData = useCallback(() => {
     const { plans: samplePlans, records: sampleRecords } = generateSampleData(new Date());
@@ -633,7 +633,7 @@ export default function Home() {
     setError(null);
 
     if (typeof window !== "undefined") {
-      window.localStorage.setItem(SAMPLE_DATA_KEY, "true");
+      window.localStorage.setItem(STORAGE_KEYS.SAMPLE_DATA_LOADED, "true");
     }
   }, [createBackupSnapshot, setPlans, setRecords, setSessions]);
 
@@ -650,7 +650,7 @@ export default function Home() {
         const existingIndex = recordsIndexMap.get(sanitizedRecord.date);
         if (existingIndex !== undefined) {
           const previousMinutes = updatedRecords[existingIndex].minutes;
-          const totalMinutes = Math.min(previousMinutes + sanitizedRecord.minutes, 24 * 60);
+          const totalMinutes = Math.min(previousMinutes + sanitizedRecord.minutes, TIME_LIMITS.MAX_MINUTES_PER_DAY);
           updatedRecords[existingIndex] = sanitizeStudyRecord({
             ...updatedRecords[existingIndex],
             minutes: totalMinutes,
@@ -716,7 +716,7 @@ export default function Home() {
       setError(null);
     } catch (err) {
       setError("Failed to save bulk records. Please try again.");
-      console.error("Error saving bulk records:", err);
+      logError("Error saving bulk records:", err);
     }
   }, [
     appendLogEntry,
@@ -1114,6 +1114,18 @@ export default function Home() {
           <BulkRecordAdd
             onSave={handleBulkRecordSave}
             onCancel={() => setShowBulkRecordAdd(false)}
+          />
+        )}
+
+        {/* Clear All Data Confirmation Dialog */}
+        {showClearConfirm && (
+          <ConfirmDialog
+            title="Clear All Data"
+            message="Are you sure you want to clear all study data and backups? This action cannot be undone."
+            confirmText="Clear All"
+            cancelText="Cancel"
+            onConfirm={handleClearAllDataConfirm}
+            onCancel={() => setShowClearConfirm(false)}
           />
         )}
       </div>

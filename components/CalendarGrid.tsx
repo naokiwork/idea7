@@ -8,6 +8,7 @@ import { getDailyAchievement } from "@/lib/calculations";
 import { fromMinutes } from "@/lib/utils";
 import { useLocale } from "@/context/LocaleContext";
 import type { ColorThemeOption } from "@/types";
+import { CALENDAR_CONFIG } from "@/lib/constants";
 
 interface CalendarGridProps {
   records: StudyRecord[];
@@ -86,7 +87,7 @@ export default function CalendarGrid({
     }
 
     // Next month's leading days
-    const remainingCells = 42 - calendarCells.length; // 6 weeks × 7 days
+    const remainingCells = CALENDAR_CONFIG.TOTAL_CELLS - calendarCells.length;
     for (let day = 1; day <= remainingCells; day++) {
       const date = new Date(year, month + 1, day);
       const dateStr = formatDate(date);

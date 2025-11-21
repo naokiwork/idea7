@@ -2,18 +2,53 @@
 
 import { useState, useEffect, useCallback } from "react";
 
+export interface UseModalReturn {
+  isOpen: boolean;
+  open: () => void;
+  close: () => void;
+  toggle: () => void;
+}
+
 /**
  * Custom hook for managing modal state with keyboard support
- * Handles Escape key to close modal
+ * Provides open/close/toggle functions and handles Escape key
+ * 
+ * @example
+ * ```tsx
+ * const { isOpen, open, close } = useModal();
+ * 
+ * return (
+ *   <>
+ *     <button onClick={open}>Open Modal</button>
+ *     {isOpen && (
+ *       <div>
+ *         <button onClick={close}>Close</button>
+ *       </div>
+ *     )}
+ *   </>
+ * );
+ * ```
  */
-export function useModal(initialState = false) {
+export function useModal(initialState = false): UseModalReturn {
   const [isOpen, setIsOpen] = useState(initialState);
 
-  const open = useCallback(() => setIsOpen(true), []);
-  const close = useCallback(() => setIsOpen(false), []);
+  const open = useCallback(() => {
+    setIsOpen(true);
+  }, []);
 
+  const close = useCallback(() => {
+    setIsOpen(false);
+  }, []);
+
+  const toggle = useCallback(() => {
+    setIsOpen((prev) => !prev);
+  }, []);
+
+  // Handle Escape key to close modal
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      return;
+    }
 
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -22,9 +57,10 @@ export function useModal(initialState = false) {
     };
 
     document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+    };
   }, [isOpen, close]);
 
-  return { isOpen, open, close };
+  return { isOpen, open, close, toggle };
 }
-

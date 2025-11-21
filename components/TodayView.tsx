@@ -8,6 +8,7 @@ import { getAchievementColor, getColorClass, getColorStyle, getTextColorClass } 
 import EditRecordModal from "./EditRecordModal";
 import ConfirmDialog from "./ConfirmDialog";
 import { useLocale } from "@/context/LocaleContext";
+import { RING_ANIMATION } from "@/lib/constants";
 
 interface TodayViewProps {
   records: StudyRecord[];
@@ -136,11 +137,6 @@ export default function TodayView({
     clearRingTimers();
     setRingState("idle");
 
-    const SWEEP_DELAY = 500;
-    const SWEEP_DURATION = 3000;
-    const FLASH_DELAY = 300;
-    const FLASH_DURATION = 300;
-
     sweepStartTimeoutRef.current = setTimeout(() => {
       setRingState("sweeping");
       sweepEndTimeoutRef.current = setTimeout(() => {
@@ -149,10 +145,10 @@ export default function TodayView({
           setRingState("flash");
           resetTimeoutRef.current = setTimeout(() => {
             setRingState("idle");
-          }, FLASH_DURATION);
-        }, FLASH_DELAY);
-      }, SWEEP_DURATION);
-    }, SWEEP_DELAY);
+          }, RING_ANIMATION.FLASH_DURATION);
+        }, RING_ANIMATION.FLASH_DELAY);
+      }, RING_ANIMATION.SWEEP_DURATION);
+    }, RING_ANIMATION.SWEEP_DELAY);
 
     return () => {
       clearRingTimers();

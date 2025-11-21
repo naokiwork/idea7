@@ -4,6 +4,7 @@
 
 import type { StudyRecord, PlanData } from "@/types";
 import { formatDate, parseDate } from "@/lib/utils";
+import { TIME_LIMITS } from "./constants";
 
 /**
  * Validate date string format (YYYY-MM-DD)
@@ -38,8 +39,8 @@ export function validateStudyRecord(record: StudyRecord): { valid: boolean; erro
     return { valid: false, error: "Minutes cannot be negative" };
   }
 
-  if (record.minutes > 24 * 60) {
-    return { valid: false, error: "Study time cannot exceed 24 hours per day" };
+  if (record.minutes > TIME_LIMITS.MAX_MINUTES_PER_DAY) {
+    return { valid: false, error: `Study time cannot exceed ${TIME_LIMITS.MAX_HOURS} hours per day` };
   }
 
   return { valid: true };
@@ -61,16 +62,16 @@ export function validatePlanData(plan: PlanData): { valid: boolean; error?: stri
     return { valid: false, error: "Hours must be a number" };
   }
 
-  if (plan.hours < 0 || plan.hours > 24) {
-    return { valid: false, error: "Hours must be between 0 and 24" };
+  if (plan.hours < 0 || plan.hours > TIME_LIMITS.MAX_HOURS) {
+    return { valid: false, error: `Hours must be between 0 and ${TIME_LIMITS.MAX_HOURS}` };
   }
 
   if (typeof plan.minutes !== "number" || isNaN(plan.minutes)) {
     return { valid: false, error: "Minutes must be a number" };
   }
 
-  if (plan.minutes < 0 || plan.minutes >= 60) {
-    return { valid: false, error: "Minutes must be between 0 and 59" };
+  if (plan.minutes < 0 || plan.minutes > TIME_LIMITS.MAX_MINUTES) {
+    return { valid: false, error: `Minutes must be between 0 and ${TIME_LIMITS.MAX_MINUTES}` };
   }
 
   return { valid: true };
@@ -83,7 +84,7 @@ export function sanitizeStudyRecord(record: StudyRecord): StudyRecord {
   const normalizedDate = normalizeDateString(record.date);
   return {
     date: normalizedDate,
-    minutes: Math.max(0, Math.min(24 * 60, Math.round(record.minutes))),
+    minutes: Math.max(0, Math.min(TIME_LIMITS.MAX_MINUTES_PER_DAY, Math.round(record.minutes))),
   };
 }
 
@@ -92,7 +93,7 @@ export function sanitizeStudyRecord(record: StudyRecord): StudyRecord {
  */
 export function sanitizePlanData(plan: PlanData): PlanData {
   const normalizedDate = normalizeDateString(plan.date);
-  const totalMinutes = Math.max(0, Math.min(24 * 60, Math.round(plan.hours) * 60 + Math.round(plan.minutes)));
+  const totalMinutes = Math.max(0, Math.min(TIME_LIMITS.MAX_MINUTES_PER_DAY, Math.round(plan.hours) * 60 + Math.round(plan.minutes)));
 
   return {
     date: normalizedDate,
