@@ -1,0 +1,80 @@
+name: Auto-improve Codebase
+
+on:
+  schedule:
+    # 毎時間実行（UTC時間の0分）
+    - cron: '0 * * * *'
+  workflow_dispatch: # 手動実行も可能
+
+jobs:
+  auto-improve:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT_FOR_AUTOMERGE }}
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build TypeScript
+        run: npm run build:server
+
+      - name: Run auto-improve script
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT_FOR_AUTOMERGE }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          npx ts-node --skipLibCheck scripts/auto-improve.ts
+
+      - name: Check for changes
+        id: check-changes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup GitHub CLI
+        if: steps.check-changes.outputs.has_changes == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT_FOR_AUTOMERGE }}
+        run: |
+          echo "$GITHUB_TOKEN" | gh auth login --with-token
+
+      - name: Create Pull Request
+        if: steps.check-changes.outputs.has_changes == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT_FOR_AUTOMERGE }}
+        run: |
+          BRANCH_NAME="auto-improve-$(date +%Y%m%d-%H%M%S)"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b $BRANCH_NAME
+          git add .
+          git commit -m "Auto-improve: Code improvements and fixes" || exit 0
+          git push origin $BRANCH_NAME
+          
+          # PR作成
+          PR_TITLE="Auto-improve: $(date +%Y-%m-%d\ %H:%M:%S)"
+          PR_BODY="自動改善によるコードの修正と改善が含まれています。"
+          
+          gh pr create \
+            --title "$PR_TITLE" \
+            --body "$PR_BODY" \
+            --base main \
+            --head $BRANCH_NAME || echo "PR creation failed or already exists"
+
