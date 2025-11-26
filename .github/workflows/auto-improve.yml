@@ -37,7 +37,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_PAT_FOR_AUTOMERGE }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
-          npx ts-node --skipLibCheck scripts/auto-improve.ts
+          npx ts-node scripts/auto-improve.ts
 
       - name: Check for changes
         id: check-changes
